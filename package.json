@@ -35,7 +35,7 @@
             {
                 "command": "extension.runMakeByTarget",
                 "category": "Make",
-                "title": "Target"
+                "title": "Make (Target select)"
             }
         ],
         "menus": {
