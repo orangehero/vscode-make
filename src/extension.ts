@@ -1,6 +1,8 @@
 'use strict';
 import * as vscode from 'vscode';
 import {spawn, execSync} from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -28,7 +30,9 @@ async function runMake() {
 
     // If there are not targets, we want targets to be empty, not an array with an empty string.
     let targets: string[] = [];
-    target.split(" ").forEach((t) => {targets.push(t)});
+    if (targets.length>0) { 
+        target.split(" ").forEach((t : string) => {targets.push(t);}); 
+    }
     make(targets);
 }
 
@@ -36,7 +40,7 @@ async function runMake() {
 function make(targets: string[]) {
     let resultMessage = "make is done";
     let make = spawn('make', targets, {
-        cwd: vscode.workspace.rootPath
+        cwd: getCWD()
     });
     make.on("close", (code) => {
         if (code > 0) {
@@ -68,18 +72,47 @@ async function runMakeByTarget() {
     }
 }
 
+// Make an estimate in which folder the Makefile is located
+function getCWD() : string {
+    let editor = vscode.window.activeTextEditor;
+    if (editor) {
+        let folder = path.dirname(editor.document.uri.fsPath);
+        let chkcwd = path.format({
+            dir: folder,
+            base: 'Makefile'
+          });
+        if (fs.existsSync(chkcwd)) {
+            return folder;
+        }
+    }
+    if (vscode.workspace.workspaceFolders) {
+        for (let folder of vscode.workspace.workspaceFolders) {
+            let chkcwd = path.format({
+                dir: folder.uri.fsPath,
+                base: 'Makefile'
+              });
+            if (fs.existsSync(chkcwd)) {
+                return folder.uri.fsPath;
+            }
+        }
+    }
+    return "";
+}
+
 // Get a list of targets
 function findMakeTargets(): string[] {
     // This is approximately the Bash completion sequence run to get make targets.
     const bashCompletion = `make -pRrq : 2>/dev/null | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($1 !~ "^[#.]") {print $1}}' | egrep -v '^[^[:alnum:]]' | sort | xargs`;
-    let res = execSync(bashCompletion, {cwd: vscode.workspace.rootPath});
-    return res.toString().split(" ");
+    let res = execSync(bashCompletion, {cwd: getCWD()});
+    let splitres = res.toString().split(" ");
+    return splitres;
 }
 
 let _channel: vscode.OutputChannel;
 function getOutputChannel(): vscode.OutputChannel {
 	if (!_channel) {
 		_channel = vscode.window.createOutputChannel('Make');
-	}
+    }
+    _channel.clear();
 	return _channel;
 }
