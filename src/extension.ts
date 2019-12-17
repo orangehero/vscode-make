@@ -31,9 +31,19 @@ async function runMake() {
     // If there are not targets, we want targets to be empty, not an array with an empty string.
     let targets: string[] = [];
     if (targets.length>0) { 
-        target.split(" ").forEach((t : string) => {targets.push(t);}); 
+        target.split(" ").forEach((t : string) => { targets.push(t); }); 
     }
     make(targets);
+}
+
+// List the targets, and run the selected target
+async function runMakeByTarget() {
+    let targets = findMakeTargets();
+    const target = await vscode.window.showQuickPick(targets);
+    if (target !== undefined) {
+        // remove any whitespaces or newlines
+        make([target.trim()]);
+    }
 }
 
 // Call make with a list of targets. An empty list runs the default.
@@ -61,15 +71,6 @@ function make(targets: string[]) {
 
     channel.appendLine(resultMessage);
     channel.show(true);
-}
-
-// List the targets, and run the selected target
-async function runMakeByTarget() {
-    let targets = findMakeTargets();
-    const target = await vscode.window.showQuickPick(targets);
-    if (target !== undefined) {
-        make([target]);
-    }
 }
 
 // Make an estimate in which folder the Makefile is located
